@@ -10,20 +10,21 @@ import java.util.Optional;
 
 @Service
 public class UserServices {
+
     @Autowired
     private UserRepository userRepository;
 
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-
-    public User register(User user) {
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+    public User registerUser(User user) {
+        // Check if email already exists
+        Optional<User> existingUser = userRepository.findByEmail(user.getEmail());
+        if (existingUser.isPresent()) {
+            throw new RuntimeException("Email already registered");
+        }
         return userRepository.save(user);
     }
 
-    public boolean login(String email, String password) {
-        Optional<User> userOpt = userRepository.findByEmail(email);
-        return userOpt.map(user -> passwordEncoder.matches(password, user.getPassword())).orElse(false);
+    public boolean loginUser(String email, String password) {
+        Optional<User> user = userRepository.findByEmail(email);
+        return user.isPresent() && user.get().getPassword().equals(password);
     }
 }
-
-

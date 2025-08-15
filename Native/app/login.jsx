@@ -1,71 +1,75 @@
-// app/login.jsx
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useState } from "react";
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
-export default function LoginScreen() {
-  const router = useRouter();
-  const [isLogin, setIsLogin] = useState(true); // toggle between login/register
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+export default function Login({ navigation }) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = () => {
-    if (isLogin) {
-      // Login logic here
-      router.replace('/(tabs)');
-    } else {
-      // Registration logic here
-      if (password !== confirmPassword) {
-        alert("Passwords don't match");
-        return;
+  const handleLogin = async () => {
+    if (!username || !password) {
+      Alert.alert("Error", "Please enter both username and password");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const response = await fetch("http://192.168.84.188:8080/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        Alert.alert("Success", "Login successful");
+
+        // Example: If backend sends token, you can save it in AsyncStorage
+        // await AsyncStorage.setItem("token", data.token);
+
+        // Navigate to home/dashboard after login
+        navigation.replace("Home");
+      } else {
+        const errorText = await response.text();
+        Alert.alert("Login Failed", errorText || "Invalid credentials");
       }
-      // If registration successful:
-      router.replace('/(tabs)');
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Something went wrong, please try again");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>
-        {isLogin ? 'Login to Flow Care' : 'Register for Flow Care'}
-      </Text>
+      <Text style={styles.title}>Login</Text>
 
       <TextInput
         style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
+        placeholder="Username"
+        value={username}
+        onChangeText={setUsername}
+        autoCapitalize="none"
       />
 
       <TextInput
         style={styles.input}
         placeholder="Password"
-        secureTextEntry
         value={password}
         onChangeText={setPassword}
+        secureTextEntry
       />
 
-      {!isLogin && (
-        <TextInput
-          style={styles.input}
-          placeholder="Confirm Password"
-          secureTextEntry
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-        />
-      )}
-
-      <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-        <Text style={styles.buttonText}>{isLogin ? 'Login' : 'Register'}</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => setIsLogin(!isLogin)}>
-        <Text style={styles.toggleText}>
-          {isLogin
-            ? "Don't have an account? Register"
-            : 'Already have an account? Login'}
-        </Text>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={handleLogin}
+        disabled={loading}
+      >
+        <Text style={styles.buttonText}>{loading ? "Logging in..." : "Login"}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -74,42 +78,36 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f7f7f7',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
     padding: 20,
   },
   title: {
-    fontSize: 26,
-    fontWeight: 'bold',
+    fontSize: 28,
+    fontWeight: "bold",
     marginBottom: 30,
-    color: '#333',
-    textAlign: 'center',
   },
   input: {
-    width: '100%',
-    padding: 12,
+    width: "100%",
+    height: 50,
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
+    borderColor: "#ccc",
+    borderRadius: 10,
+    paddingHorizontal: 15,
     marginBottom: 15,
-    backgroundColor: '#fff',
   },
   button: {
-    backgroundColor: '#e91e63',
-    paddingVertical: 12,
-    paddingHorizontal: 25,
-    borderRadius: 8,
-    marginTop: 5,
+    width: "100%",
+    height: 50,
+    backgroundColor: "#007bff",
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
   },
   buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  toggleText: {
-    marginTop: 15,
-    color: '#e91e63',
-    fontWeight: '600',
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
   },
 });
