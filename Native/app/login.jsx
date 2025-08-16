@@ -1,113 +1,83 @@
-import { useState } from "react";
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+// app/login.jsx
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-export default function Login({ navigation }) {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+export default function Login() {
+  const router = useRouter();
+  const [userEmail, setUserEmail] = useState('');
+  const [userPass, setUserPass] = useState('');
 
   const handleLogin = async () => {
-    if (!username || !password) {
-      Alert.alert("Error", "Please enter both username and password");
-      return;
-    }
-
     try {
-      setLoading(true);
-
-      const response = await fetch("http://192.168.84.188:8080/api/auth/login", {
+      const response = await fetch("/auth/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ username, password }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userEmail, userPass }),
       });
 
       if (response.ok) {
         const data = await response.json();
         Alert.alert("Success", "Login successful");
-
-        // Example: If backend sends token, you can save it in AsyncStorage
-        // await AsyncStorage.setItem("token", data.token);
-
-        // Navigate to home/dashboard after login
-        navigation.replace("Home");
+        console.log("User Data:", data);
+        // router.push('/somewhere'); // optional redirect after login
       } else {
-        const errorText = await response.text();
-        Alert.alert("Login Failed", errorText || "Invalid credentials");
+        const errorData = await response.json();
+        Alert.alert("Error", errorData.message || "Login failed");
       }
     } catch (error) {
-      console.error(error);
-      Alert.alert("Error", "Something went wrong, please try again");
-    } finally {
-      setLoading(false);
+      console.error("Error during login:", error);
+      Alert.alert("Error", "Something went wrong");
     }
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Login</Text>
-
       <TextInput
+        placeholder="Email"
+        value={userEmail}
+        onChangeText={setUserEmail}
         style={styles.input}
-        placeholder="Username"
-        value={username}
-        onChangeText={setUsername}
-        autoCapitalize="none"
       />
-
       <TextInput
-        style={styles.input}
         placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
+        value={userPass}
+        onChangeText={setUserPass}
         secureTextEntry
+        style={styles.input}
       />
+      <TouchableOpacity style={styles.button} onPress={handleLogin}>
+        <Text style={styles.buttonText}>Login</Text>
+      </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handleLogin}
-        disabled={loading}
-      >
-        <Text style={styles.buttonText}>{loading ? "Logging in..." : "Login"}</Text>
+      <TouchableOpacity onPress={() => router.push('/register')}>
+        <Text style={styles.registerText}>Not Registered?</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    padding: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 30,
-  },
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  title: { fontSize: 26, fontWeight: 'bold', marginBottom: 20 },
   input: {
-    width: "100%",
-    height: 50,
+    width: '100%',
+    padding: 12,
+    marginBottom: 10,
+    backgroundColor: '#fff',
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    marginBottom: 15,
+    borderColor: '#ccc',
   },
   button: {
-    width: "100%",
-    height: 50,
-    backgroundColor: "#007bff",
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: '#1A8EFD',
+    padding: 12,
+    borderRadius: 8,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  buttonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
+  buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  registerText: { color: '#e91e63', fontSize: 14, marginTop: 10 },
 });
