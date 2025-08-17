@@ -27,6 +27,7 @@ public class UserServices {
         // Hash the password before saving
         user.setPassword(passwordEncoder.encode(user.getPassword()));
 
+        // Save the user including name
         return userRepository.save(user);
     }
 
@@ -37,3 +38,4 @@ public class UserServices {
         return user.isPresent() && passwordEncoder.matches(rawPassword, user.get().getPassword());
     }
 }
+

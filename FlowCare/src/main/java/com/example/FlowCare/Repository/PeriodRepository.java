@@ -1,4 +1,9 @@
 package com.example.FlowCare.Repository;
 
-public interface PeriodRepository {
+import com.example.FlowCare.Entity.Period;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import java.util.List;
+
+public interface PeriodRepository extends MongoRepository<Period, String> {
+    List<Period> findByUserId(String userId);
 }
