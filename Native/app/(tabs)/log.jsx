@@ -1,5 +1,13 @@
-import { useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useEffect, useState } from "react";
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+} from "react-native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 
 export default function Log() {
@@ -7,27 +15,49 @@ export default function Log() {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [symptoms, setSymptoms] = useState("");
+  const [userId, setUserId] = useState(null);
+  const [userName, setUserName] = useState(""); // 👈 store logged in user's name
 
   const [isStartPickerVisible, setStartPickerVisible] = useState(false);
   const [isEndPickerVisible, setEndPickerVisible] = useState(false);
 
+  // Load userId + userName from AsyncStorage
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const storedUserId = await AsyncStorage.getItem("userId");
+        const storedUserName = await AsyncStorage.getItem("userName");
+        if (storedUserId) setUserId(storedUserId);
+        if (storedUserName) setUserName(storedUserName);
+      } catch (e) {
+        console.error("Error loading user data:", e);
+      }
+    };
+    fetchUserData();
+  }, []);
+
   const handleSave = async () => {
-    if (!startDate || !endDate || !cycleLength) {
+    if (!startDate || !endDate || !cycleLength || !symptoms) {
       Alert.alert("Error", "Please fill all fields!");
+      return;
+    }
+
+    if (!userId) {
+      Alert.alert("Error", "User ID not found. Please log in again.");
       return;
     }
 
     try {
       const response = await fetch(
-        "http://192.168.84.188:8080/api/periods/log?userId=USER_ID",
+        `http://192.168.84.188:8080/api/periods/add?userId=${userId}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             startDate: startDate.toISOString().split("T")[0],
             endDate: endDate.toISOString().split("T")[0],
-            cycleLength: parseInt(cycleLength),
-            symptoms,
+            cycleLength: parseInt(cycleLength, 10),
+            diary: symptoms,
           }),
         }
       );
@@ -39,17 +69,27 @@ export default function Log() {
           "Success",
           `Cycle logged successfully! Next period starts on: ${data.nextPeriodStart}`
         );
+        // reset fields
+        setCycleLength("");
+        setStartDate(null);
+        setEndDate(null);
+        setSymptoms("");
       } else {
         Alert.alert("Error", data.message || "Failed to save");
       }
     } catch (error) {
-      console.error(error);
+      console.error("Save error:", error);
       Alert.alert("Error", "Something went wrong");
     }
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      {/* 👇 Greet the user if name is stored */}
+      {userName ? (
+        <Text style={styles.greeting}>Hi {userName} 👋</Text>
+      ) : null}
+
       <Text style={styles.title}>Log Your Cycle & Symptoms</Text>
 
       <Text style={styles.label}>Start Date:</Text>
@@ -78,10 +118,6 @@ export default function Log() {
           setStartPickerVisible(false);
         }}
         onCancel={() => setStartPickerVisible(false)}
-        headerTextIOS="Pick Start Date"
-        confirmTextIOS="Confirm"
-        cancelTextIOS="Cancel"
-        pickerContainerStyleIOS={styles.pickerContainer}
       />
 
       {/* End Date Picker Modal */}
@@ -94,10 +130,6 @@ export default function Log() {
           setEndPickerVisible(false);
         }}
         onCancel={() => setEndPickerVisible(false)}
-        headerTextIOS="Pick End Date"
-        confirmTextIOS="Confirm"
-        cancelTextIOS="Cancel"
-        pickerContainerStyleIOS={styles.pickerContainer}
       />
 
       <Text style={styles.label}>Cycle Length (days):</Text>
@@ -130,6 +162,13 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: "#FFD6E8",
     flexGrow: 1,
+  },
+  greeting: {
+    fontSize: 22,
+    fontWeight: "600",
+    color: "#4a148c",
+    marginBottom: 10,
+    textAlign: "center",
   },
   title: {
     fontSize: 26,
@@ -164,9 +203,5 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 18,
     fontWeight: "bold",
-  },
-  pickerContainer: {
-    backgroundColor: "#f8d5f7",
-    borderRadius: 15,
   },
 });

@@ -34,7 +34,7 @@ public class PeriodServices {
             existingPeriod.setStartDate(updatedPeriod.getStartDate());
             existingPeriod.setEndDate(updatedPeriod.getEndDate());
             existingPeriod.setCycleLength(updatedPeriod.getCycleLength());
-            existingPeriod.setDiary(updatedPeriod.getDiary()); // ✅ updated diary
+            existingPeriod.setDiary(updatedPeriod.getDiary());
             return periodRepository.save(existingPeriod);
         } else {
             throw new RuntimeException("Period not found with id: " + periodId);
@@ -42,10 +42,11 @@ public class PeriodServices {
     }
 
     // Delete a period entry
-    public void deletePeriod(Long periodId) {
-        if (!periodRepository.existsById(String.valueOf(periodId))) {
+    public void deletePeriod(String periodId) {
+        if (!periodRepository.existsById(periodId)) {
             throw new RuntimeException("Period not found with id: " + periodId);
         }
-        periodRepository.deleteById(String.valueOf(periodId));
+        periodRepository.deleteById(periodId);
     }
+
 }

@@ -33,16 +33,17 @@ public class PeriodController {
     // Update a period
     @PutMapping("/update/{periodId}")
     public Period updatePeriod(
-            @PathVariable Long periodId,
+            @PathVariable String periodId,
             @RequestBody Period updatedPeriod
     ) {
-        return periodService.updatePeriod(String.valueOf(periodId), updatedPeriod);
+        return periodService.updatePeriod(periodId, updatedPeriod);
     }
 
     // Delete a period
     @DeleteMapping("/delete/{periodId}")
-    public String deletePeriod(@PathVariable Long periodId) {
+    public String deletePeriod(@PathVariable String periodId) {
         periodService.deletePeriod(periodId);
         return "Period with ID " + periodId + " deleted successfully.";
     }
+
 }

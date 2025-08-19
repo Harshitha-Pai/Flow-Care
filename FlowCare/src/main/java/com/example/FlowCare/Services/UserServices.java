@@ -37,5 +37,10 @@ public class UserServices {
         // Check if user exists and password matches
         return user.isPresent() && passwordEncoder.matches(rawPassword, user.get().getPassword());
     }
+
+    public Optional<User> getUserByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
+
 }
 

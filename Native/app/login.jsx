@@ -1,26 +1,42 @@
 // app/login.jsx
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
+import { useState } from "react";
+import {
+  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function Login() {
   const router = useRouter();
-  const [userEmail, setUserEmail] = useState('');
-  const [userPass, setUserPass] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const handleLogin = async () => {
     try {
-      const response = await fetch("/auth/login", {
+      const response = await fetch("http://192.168.84.188:8080/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userEmail, userPass }),
+        body: JSON.stringify({ email, password }), // ✅ backend expects these keys
       });
 
       if (response.ok) {
         const data = await response.json();
+
+        // Save JWT + username for persistence
+        await AsyncStorage.setItem("authToken", data.token);
+        if (data.user?.name) {
+          await AsyncStorage.setItem("userName", data.user.name);
+        }
+
         Alert.alert("Success", "Login successful");
         console.log("User Data:", data);
-        // router.push('/somewhere'); // optional redirect after login
+
+        router.replace("/(tabs)");
       } else {
         const errorData = await response.json();
         Alert.alert("Error", errorData.message || "Login failed");
@@ -34,24 +50,28 @@ export default function Login() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Login</Text>
+
       <TextInput
         placeholder="Email"
-        value={userEmail}
-        onChangeText={setUserEmail}
+        value={email}
+        onChangeText={setEmail}
         style={styles.input}
+        autoCapitalize="none"
       />
+
       <TextInput
         placeholder="Password"
-        value={userPass}
-        onChangeText={setUserPass}
+        value={password}
+        onChangeText={setPassword}
         secureTextEntry
         style={styles.input}
       />
+
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>Login</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.push('/register')}>
+      <TouchableOpacity onPress={() => router.push("/register")}>
         <Text style={styles.registerText}>Not Registered?</Text>
       </TouchableOpacity>
     </View>
@@ -59,25 +79,32 @@ export default function Login() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  title: { fontSize: 26, fontWeight: 'bold', marginBottom: 20 },
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+    backgroundColor: "#f8f9fa",
+  },
+  title: { fontSize: 26, fontWeight: "bold", marginBottom: 20 },
   input: {
-    width: '100%',
+    width: "100%",
     padding: 12,
     marginBottom: 10,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: "#ccc",
   },
   button: {
-    backgroundColor: '#1A8EFD',
+    backgroundColor: "#1A8EFD",
     padding: 12,
     borderRadius: 8,
-    width: '100%',
-    alignItems: 'center',
+    width: "100%",
+    alignItems: "center",
     marginBottom: 12,
   },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  registerText: { color: '#e91e63', fontSize: 14, marginTop: 10 },
+  buttonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+  registerText: { color: "#e91e63", fontSize: 14, marginTop: 10 },
 });
+
