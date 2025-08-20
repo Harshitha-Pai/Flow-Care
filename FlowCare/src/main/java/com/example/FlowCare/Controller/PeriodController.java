@@ -2,9 +2,11 @@ package com.example.FlowCare.Controller;
 
 import com.example.FlowCare.Entity.Period;
 import com.example.FlowCare.Services.PeriodServices;
+import dto.PeriodResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -17,11 +19,16 @@ public class PeriodController {
 
     // Add a period
     @PostMapping("/add")
-    public Period addPeriod(
-            @RequestBody Period period,
-            @RequestParam String userId
-    ) {
-        return periodService.addPeriod(userId, period);
+    public PeriodResponse addPeriod(@RequestBody Period period, @RequestParam String userId) {
+        Period savedPeriod = periodService.addPeriod(userId, period);
+
+        // Predict next period (startDate + cycleLength days)
+        LocalDate nextPeriodStart = null;
+        if (savedPeriod.getStartDate() != null && savedPeriod.getCycleLength() > 0) {
+            nextPeriodStart = savedPeriod.getStartDate().plusDays(savedPeriod.getCycleLength());
+        }
+
+        return new PeriodResponse(savedPeriod, nextPeriodStart);
     }
 
     // Get all periods for a user

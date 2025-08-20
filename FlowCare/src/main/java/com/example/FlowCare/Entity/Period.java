@@ -15,7 +15,7 @@ public class Period {
     private LocalDate endDate;
     private int cycleLength;
     private LocalDate nextPeriodStart;
-    private String diary; // user notes / symptoms
+    private String notes; // user notes / symptoms
 
     public Period() {}
 
@@ -42,8 +42,8 @@ public class Period {
 
     public LocalDate getNextPeriodStart() { return nextPeriodStart; }
 
-    public String getDiary() { return diary; }
-    public void setDiary(String diary) { this.diary = diary; }
+    public String getNotes() { return notes; }
+    public void setNotes(String notes) { this.notes = notes; }
 
     // --- Helper to calculate next period ---
     private void calculateNextPeriod() {

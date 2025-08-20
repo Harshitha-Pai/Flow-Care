@@ -13,37 +13,38 @@ import DateTimePickerModal from "react-native-modal-datetime-picker";
 export default function Log() {
   const [cycleLength, setCycleLength] = useState("");
   const [startDate, setStartDate] = useState(null);
-  const [endDate, setEndDate] = useState(null);
-  const [symptoms, setSymptoms] = useState("");
+  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [userId, setUserId] = useState(null);
-  const [userName, setUserName] = useState(""); // 👈 store logged in user's name
 
-  const [isStartPickerVisible, setStartPickerVisible] = useState(false);
-  const [isEndPickerVisible, setEndPickerVisible] = useState(false);
-
-  // Load userId + userName from AsyncStorage
+  // 🔹 Load userId from AsyncStorage
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchUserId = async () => {
       try {
-        const storedUserId = await AsyncStorage.getItem("userId");
-        const storedUserName = await AsyncStorage.getItem("userName");
-        if (storedUserId) setUserId(storedUserId);
-        if (storedUserName) setUserName(storedUserName);
-      } catch (e) {
-        console.error("Error loading user data:", e);
+        const id = await AsyncStorage.getItem("userId");
+        if (id) {
+          setUserId(id);
+        } else {
+          Alert.alert("Error", "User not found. Please login again.");
+        }
+      } catch (error) {
+        console.error("Error loading userId:", error);
       }
     };
-    fetchUserData();
+    fetchUserId();
   }, []);
 
-  const handleSave = async () => {
-    if (!startDate || !endDate || !cycleLength || !symptoms) {
-      Alert.alert("Error", "Please fill all fields!");
-      return;
-    }
+  const showDatePicker = () => setDatePickerVisibility(true);
+  const hideDatePicker = () => setDatePickerVisibility(false);
 
-    if (!userId) {
-      Alert.alert("Error", "User ID not found. Please log in again.");
+  const handleConfirm = (date) => {
+    setStartDate(date.toISOString().split("T")[0]); // store as YYYY-MM-DD
+    hideDatePicker();
+  };
+
+  // 🔹 Save period log to backend
+  const handleSave = async () => {
+    if (!cycleLength || !startDate || !userId) {
+      Alert.alert("Error", "Please enter all details.");
       return;
     }
 
@@ -54,104 +55,56 @@ export default function Log() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            startDate: startDate.toISOString().split("T")[0],
-            endDate: endDate.toISOString().split("T")[0],
+            userId: parseInt(userId, 10),
             cycleLength: parseInt(cycleLength, 10),
-            diary: symptoms,
+            startDate,
           }),
         }
       );
 
-      const data = await response.json();
-
       if (response.ok) {
-        Alert.alert(
-          "Success",
-          `Cycle logged successfully! Next period starts on: ${data.nextPeriodStart}`
-        );
-        // reset fields
+        Alert.alert("Success", "Period logged successfully!");
         setCycleLength("");
         setStartDate(null);
-        setEndDate(null);
-        setSymptoms("");
       } else {
-        Alert.alert("Error", data.message || "Failed to save");
+        Alert.alert("Error", "Failed to save log.");
       }
     } catch (error) {
-      console.error("Save error:", error);
-      Alert.alert("Error", "Something went wrong");
+      Alert.alert("Error", "Something went wrong.");
+      console.error(error);
     }
   };
 
+  if (!userId) {
+    return <Text style={{ padding: 20 }}>Loading user...</Text>;
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* 👇 Greet the user if name is stored */}
-      {userName ? (
-        <Text style={styles.greeting}>Hi {userName} 👋</Text>
-      ) : null}
-
-      <Text style={styles.title}>Log Your Cycle & Symptoms</Text>
-
-      <Text style={styles.label}>Start Date:</Text>
-      <TouchableOpacity
-        style={styles.input}
-        onPress={() => setStartPickerVisible(true)}
-      >
-        <Text>{startDate ? startDate.toDateString() : "Select start date"}</Text>
-      </TouchableOpacity>
-
-      <Text style={styles.label}>End Date:</Text>
-      <TouchableOpacity
-        style={styles.input}
-        onPress={() => setEndPickerVisible(true)}
-      >
-        <Text>{endDate ? endDate.toDateString() : "Select end date"}</Text>
-      </TouchableOpacity>
-
-      {/* Start Date Picker Modal */}
-      <DateTimePickerModal
-        isVisible={isStartPickerVisible}
-        mode="date"
-        date={startDate || new Date()}
-        onConfirm={(date) => {
-          setStartDate(date);
-          setStartPickerVisible(false);
-        }}
-        onCancel={() => setStartPickerVisible(false)}
-      />
-
-      {/* End Date Picker Modal */}
-      <DateTimePickerModal
-        isVisible={isEndPickerVisible}
-        mode="date"
-        date={endDate || new Date()}
-        onConfirm={(date) => {
-          setEndDate(date);
-          setEndPickerVisible(false);
-        }}
-        onCancel={() => setEndPickerVisible(false)}
-      />
-
-      <Text style={styles.label}>Cycle Length (days):</Text>
+      <Text style={styles.label}>Cycle Length (days)</Text>
       <TextInput
-        placeholder="28"
+        style={styles.input}
+        keyboardType="numeric"
         value={cycleLength}
         onChangeText={setCycleLength}
-        keyboardType="numeric"
-        style={styles.input}
       />
 
-      <Text style={styles.label}>Symptoms / Notes:</Text>
-      <TextInput
-        placeholder="Write your symptoms..."
-        value={symptoms}
-        onChangeText={setSymptoms}
-        style={[styles.input, { height: 100 }]}
-        multiline
+      <Text style={styles.label}>Start Date</Text>
+      <TouchableOpacity onPress={showDatePicker} style={styles.dateButton}>
+        <Text style={styles.dateText}>
+          {startDate ? startDate : "Select Date"}
+        </Text>
+      </TouchableOpacity>
+
+      <DateTimePickerModal
+        isVisible={isDatePickerVisible}
+        mode="date"
+        onConfirm={handleConfirm}
+        onCancel={hideDatePicker}
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleSave}>
-        <Text style={styles.buttonText}>Save</Text>
+      <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+        <Text style={styles.saveButtonText}>Save</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -159,49 +112,48 @@ export default function Log() {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
-    backgroundColor: "#FFD6E8",
     flexGrow: 1,
-  },
-  greeting: {
-    fontSize: 22,
-    fontWeight: "600",
-    color: "#4a148c",
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: "bold",
-    color: "#6a1b9a",
-    textAlign: "center",
-    marginBottom: 20,
+    padding: 20,
+    justifyContent: "center",
+    backgroundColor: "#fff",
   },
   label: {
-    color: "#4a148c",
-    fontWeight: "600",
-    marginBottom: 5,
+    fontSize: 16,
+    marginBottom: 8,
+    fontWeight: "bold",
   },
   input: {
-    backgroundColor: "#fff0f7",
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    fontSize: 16,
-    marginBottom: 15,
     borderWidth: 1,
     borderColor: "#ccc",
-    justifyContent: "center",
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 20,
   },
-  button: {
-    backgroundColor: "#ce93d8",
-    padding: 15,
-    borderRadius: 15,
+  dateButton: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 20,
     alignItems: "center",
   },
-  buttonText: {
+  dateText: {
+    fontSize: 16,
+    color: "#555",
+  },
+  saveButton: {
+    backgroundColor: "#FF69B4",
+    padding: 15,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  saveButtonText: {
     color: "#fff",
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
   },
 });
+
+
+
+//http://192.168.84.188:8080

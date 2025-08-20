@@ -22,7 +22,7 @@ function AuthHeaderButton({ isLoggedIn, userName, onLogout }) {
     <TouchableOpacity onPress={handlePress} style={{ marginRight: 12 }}>
       {isLoggedIn ? (
         <Text style={{ color: "#D32F2F", fontWeight: "700", fontSize: 14 }}>
-          👋 Hi, {userName || "User"} | Logout
+             Logout
         </Text>
       ) : (
         <Text style={{ color: "#e91e63", fontWeight: "600" }}>Login</Text>

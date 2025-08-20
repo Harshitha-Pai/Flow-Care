@@ -21,25 +21,24 @@ export default function Login() {
       const response = await fetch("http://192.168.84.188:8080/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }), // ✅ backend expects these keys
+        body: JSON.stringify({ email, password }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
+      const data = await response.json();
+      console.log("Login response:", data);
 
-        // Save JWT + username for persistence
+      if (response.ok && data.token) {
+        // ✅ Save JWT + user info
         await AsyncStorage.setItem("authToken", data.token);
-        if (data.user?.name) {
-          await AsyncStorage.setItem("userName", data.user.name);
+
+        if (data.name) {
+          await AsyncStorage.setItem("userName", data.name);
         }
 
         Alert.alert("Success", "Login successful");
-        console.log("User Data:", data);
-
         router.replace("/(tabs)");
       } else {
-        const errorData = await response.json();
-        Alert.alert("Error", errorData.message || "Login failed");
+        Alert.alert("Error", data.message || "Login failed");
       }
     } catch (error) {
       console.error("Error during login:", error);
@@ -107,4 +106,3 @@ const styles = StyleSheet.create({
   buttonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
   registerText: { color: "#e91e63", fontSize: 14, marginTop: 10 },
 });
-

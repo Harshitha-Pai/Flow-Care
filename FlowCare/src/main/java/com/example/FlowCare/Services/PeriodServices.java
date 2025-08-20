@@ -34,7 +34,7 @@ public class PeriodServices {
             existingPeriod.setStartDate(updatedPeriod.getStartDate());
             existingPeriod.setEndDate(updatedPeriod.getEndDate());
             existingPeriod.setCycleLength(updatedPeriod.getCycleLength());
-            existingPeriod.setDiary(updatedPeriod.getDiary());
+            existingPeriod.setNotes(updatedPeriod.getNotes());
             return periodRepository.save(existingPeriod);
         } else {
             throw new RuntimeException("Period not found with id: " + periodId);

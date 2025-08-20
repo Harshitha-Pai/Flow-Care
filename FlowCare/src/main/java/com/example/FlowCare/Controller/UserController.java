@@ -48,7 +48,8 @@ public class UserController {
             String token = jwtUtil.generateToken(user.getEmail());
 
             response.put("message", "Login successful");
-            response.put("token", token);  // return JWT token
+            response.put("token", token);
+            response.put("id", user.getId()); // return JWT token
             response.put("name", user.getName());
             response.put("email", user.getEmail());
         } else {
