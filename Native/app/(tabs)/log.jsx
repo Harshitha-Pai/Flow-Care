@@ -7,44 +7,71 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  View,
 } from "react-native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import { Ionicons } from "@expo/vector-icons"; // ✅ for ❌ icon
 
 export default function Log() {
   const [cycleLength, setCycleLength] = useState("");
   const [startDate, setStartDate] = useState(null);
-  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+  const [endDate, setEndDate] = useState(null);
+  const [notes, setNotes] = useState("");
+  const [isStartDatePickerVisible, setStartDatePickerVisibility] = useState(false);
+  const [isEndDatePickerVisible, setEndDatePickerVisibility] = useState(false);
   const [userId, setUserId] = useState(null);
+  const [token, setToken] = useState(null);
+  const [logs, setLogs] = useState([]);
 
-  // 🔹 Load userId from AsyncStorage
+  // ✅ Load user session
   useEffect(() => {
-    const fetchUserId = async () => {
+    const fetchUserData = async () => {
       try {
         const id = await AsyncStorage.getItem("userId");
-        if (id) {
+        const storedToken = await AsyncStorage.getItem("authToken");
+
+        if (id && storedToken) {
           setUserId(id);
+          setToken(storedToken);
+          fetchLogs(id, storedToken);
         } else {
-          Alert.alert("Error", "User not found. Please login again.");
+          Alert.alert("Error", "No active session found. Please login again.");
         }
       } catch (error) {
-        console.error("Error loading userId:", error);
+        console.error("Error loading user data:", error);
       }
     };
-    fetchUserId();
+    fetchUserData();
   }, []);
 
-  const showDatePicker = () => setDatePickerVisibility(true);
-  const hideDatePicker = () => setDatePickerVisibility(false);
+  // ✅ Fetch logs from backend
+  const fetchLogs = async (id, token) => {
+    try {
+      const response = await fetch(
+        `http://192.168.84.188:8080/api/periods/user?userId=${id}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-  const handleConfirm = (date) => {
-    setStartDate(date.toISOString().split("T")[0]); // store as YYYY-MM-DD
-    hideDatePicker();
+      if (response.ok) {
+        const data = await response.json();
+        setLogs(data);
+      } else {
+        Alert.alert("Error", "Failed to fetch logs");
+      }
+    } catch (error) {
+      console.error("Error fetching logs:", error);
+    }
   };
 
-  // 🔹 Save period log to backend
-  const handleSave = async () => {
-    if (!cycleLength || !startDate || !userId) {
-      Alert.alert("Error", "Please enter all details.");
+  // ✅ Save log to backend
+  const saveLog = async () => {
+    if (!startDate || !endDate || !cycleLength) {
+      Alert.alert("Missing data", "Please fill in all required fields");
       return;
     }
 
@@ -53,107 +80,191 @@ export default function Log() {
         `http://192.168.84.188:8080/api/periods/add?userId=${userId}`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({
-            userId: parseInt(userId, 10),
-            cycleLength: parseInt(cycleLength, 10),
+            cycleLength,
             startDate,
+            endDate,
+            notes,
           }),
         }
       );
 
       if (response.ok) {
-        Alert.alert("Success", "Period logged successfully!");
+        Alert.alert("Success", "Log saved successfully");
+        fetchLogs(userId, token);
         setCycleLength("");
         setStartDate(null);
+        setEndDate(null);
+        setNotes("");
       } else {
-        Alert.alert("Error", "Failed to save log.");
+        Alert.alert("Error", "Failed to save log");
       }
     } catch (error) {
-      Alert.alert("Error", "Something went wrong.");
-      console.error(error);
+      console.error("Error saving log:", error);
     }
   };
 
-  if (!userId) {
-    return <Text style={{ padding: 20 }}>Loading user...</Text>;
-  }
+  // ✅ Delete log
+  const deleteLog = async (logId) => {
+    try {
+      const response = await fetch(
+        `http://192.168.84.188:8080/api/periods/${logId}?userId=${userId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        setLogs((prevLogs) => prevLogs.filter((log) => log.id !== logId));
+        Alert.alert("Deleted", "Log removed successfully");
+      } else {
+        Alert.alert("Error", "Failed to delete log");
+      }
+    } catch (error) {
+      console.error("Error deleting log:", error);
+    }
+  };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView style={styles.container}>
+      <Text style={styles.heading}>Log Period</Text>
+
+      {/* Cycle Length */}
       <Text style={styles.label}>Cycle Length (days)</Text>
       <TextInput
         style={styles.input}
-        keyboardType="numeric"
         value={cycleLength}
         onChangeText={setCycleLength}
+        keyboardType="numeric"
       />
 
+      {/* Start Date */}
       <Text style={styles.label}>Start Date</Text>
-      <TouchableOpacity onPress={showDatePicker} style={styles.dateButton}>
+      <TouchableOpacity
+        style={styles.dateButton}
+        onPress={() => setStartDatePickerVisibility(true)}
+      >
         <Text style={styles.dateText}>
-          {startDate ? startDate : "Select Date"}
+          {startDate ? new Date(startDate).toDateString() : "Select Start Date"}
         </Text>
       </TouchableOpacity>
-
       <DateTimePickerModal
-        isVisible={isDatePickerVisible}
+        isVisible={isStartDatePickerVisible}
         mode="date"
-        onConfirm={handleConfirm}
-        onCancel={hideDatePicker}
+        onConfirm={(date) => {
+          setStartDate(date.toISOString().split("T")[0]);
+          setStartDatePickerVisibility(false);
+        }}
+        onCancel={() => setStartDatePickerVisibility(false)}
       />
 
-      <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-        <Text style={styles.saveButtonText}>Save</Text>
+      {/* End Date */}
+      <Text style={styles.label}>End Date</Text>
+      <TouchableOpacity
+        style={styles.dateButton}
+        onPress={() => setEndDatePickerVisibility(true)}
+      >
+        <Text style={styles.dateText}>
+          {endDate ? new Date(endDate).toDateString() : "Select End Date"}
+        </Text>
       </TouchableOpacity>
+      <DateTimePickerModal
+        isVisible={isEndDatePickerVisible}
+        mode="date"
+        onConfirm={(date) => {
+          setEndDate(date.toISOString().split("T")[0]);
+          setEndDatePickerVisibility(false);
+        }}
+        onCancel={() => setEndDatePickerVisibility(false)}
+      />
+
+      {/* Notes */}
+      <Text style={styles.label}>Notes</Text>
+      <TextInput
+        style={[styles.input, { height: 80 }]}
+        value={notes}
+        onChangeText={setNotes}
+        multiline
+      />
+
+      <TouchableOpacity style={styles.saveButton} onPress={saveLog}>
+        <Text style={styles.saveButtonText}>Save Log</Text>
+      </TouchableOpacity>
+
+      {/* Show Logs */}
+      <Text style={styles.heading}>Previous Logs</Text>
+      {logs.map((log) => (
+        <View key={log.id} style={styles.logCard}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.logText}>
+              Cycle Length: {log.cycleLength} days
+            </Text>
+            <Text style={styles.logText}>
+              Start: {new Date(log.startDate).toDateString()}
+            </Text>
+            <Text style={styles.logText}>
+              End: {new Date(log.endDate).toDateString()}
+            </Text>
+            <Text style={styles.logText}>Notes: {log.notes || "None"}</Text>
+          </View>
+
+          {/* ❌ Delete Button */}
+          <TouchableOpacity onPress={() => deleteLog(log.id)}>
+            <Ionicons name="close-circle" size={28} color="red" />
+          </TouchableOpacity>
+        </View>
+      ))}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    padding: 20,
-    justifyContent: "center",
-    backgroundColor: "#fff",
-  },
-  label: {
-    fontSize: 16,
-    marginBottom: 8,
-    fontWeight: "bold",
-  },
+  container: { padding: 20, backgroundColor: "#ffe7fdff" },
+  heading: { fontSize: 20, fontWeight: "bold", marginVertical: 10 },
+  label: { marginTop: 15, fontWeight: "600" },
   input: {
     borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
+    borderColor: "#000000ff",
     padding: 10,
-    marginBottom: 20,
+    borderRadius: 8,
+    marginTop: 5,
   },
   dateButton: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
     padding: 12,
-    marginBottom: 20,
-    alignItems: "center",
-  },
-  dateText: {
-    fontSize: 16,
-    color: "#555",
-  },
-  saveButton: {
-    backgroundColor: "#FF69B4",
-    padding: 15,
+    borderWidth: 1,
+    borderColor: "#0e0e0eff",
     borderRadius: 8,
+    marginTop: 5,
     alignItems: "center",
   },
-  saveButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
+  dateText: { color: "#555" },
+  saveButton: {
+    backgroundColor: "#6A5ACD",
+    padding: 15,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 20,
   },
+  saveButtonText: { color: "#fff", fontWeight: "bold" },
+  logCard: {
+    flexDirection: "row", // ✅ align text + button
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#f8d9f7ff",
+    padding: 15,
+    borderRadius: 10,
+    marginVertical: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+  },
+  logText: { fontSize: 14, marginBottom: 3 },
 });
-
-
-
-//http://192.168.84.188:8080

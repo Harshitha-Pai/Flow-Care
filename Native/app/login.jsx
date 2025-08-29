@@ -34,6 +34,9 @@ export default function Login() {
         if (data.name) {
           await AsyncStorage.setItem("userName", data.name);
         }
+        if (data.id) {
+          await AsyncStorage.setItem("userId", data.id);
+       }
 
         Alert.alert("Success", "Login successful");
         router.replace("/(tabs)");
