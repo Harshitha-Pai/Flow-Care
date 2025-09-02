@@ -48,7 +48,7 @@ export default function Log() {
   const fetchLogs = async (id, token) => {
     try {
       const response = await fetch(
-        `http://192.168.84.188:8080/api/periods/user?userId=${id}`,
+        `http://192.168.184.188:8080/api/periods/user?userId=${id}`,
         {
           headers: {
             "Content-Type": "application/json",
@@ -77,7 +77,7 @@ export default function Log() {
 
     try {
       const response = await fetch(
-        `http://192.168.84.188:8080/api/periods/add?userId=${userId}`,
+        `http://192.168.184.188:8080/api/periods/add?userId=${userId}`,
         {
           method: "POST",
           headers: {
@@ -112,7 +112,7 @@ export default function Log() {
   const deleteLog = async (logId) => {
     try {
       const response = await fetch(
-        `http://192.168.84.188:8080/api/periods/${logId}?userId=${userId}`,
+        `http://192.168.184.188:8080/api/periods/${logId}?userId=${userId}`,
         {
           method: "DELETE",
           headers: {
@@ -215,7 +215,7 @@ export default function Log() {
             <Text style={styles.logText}>Notes: {log.notes || "None"}</Text>
           </View>
 
-          {/* ❌ Delete Button */}
+          {/*Delete Button */}
           <TouchableOpacity onPress={() => deleteLog(log.id)}>
             <Ionicons name="close-circle" size={28} color="red" />
           </TouchableOpacity>

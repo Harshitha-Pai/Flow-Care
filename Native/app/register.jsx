@@ -25,7 +25,7 @@ const RegisterScreen = () => {
     // 2. Call backend API
     setLoading(true);
     try {
-      const response = await fetch("http://192.168.84.188:8080/api/auth/register", {
+      const response = await fetch("http://192.168.184.188:8080/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
